@@ -1,0 +1,8 @@
+{
+  "files.associations": {
+    "Jenkinsfile": "groovy",
+    "*.groovy": "groovy"
+  },
+  "editor.tabSize": 2,
+  "editor.formatOnSave": true
+}

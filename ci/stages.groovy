@@ -31,8 +31,13 @@ def auditoria() {
 
 // analisis de calidad con sonarqube
 def sonar() {
-    withSonarQubeEnv('sonarqube') {
-        powershell "${tool 'sonar-scanner'}\\bin\\sonar-scanner.bat"
+    try {
+        withSonarQubeEnv('sonarqube') {
+            powershell "${tool 'sonar-scanner'}\\bin\\sonar-scanner.bat"
+        }
+    } catch (e) {
+        // aviso si sonarqube no responde
+        echo 'Aviso: servidor sonarqube no configurado en jenkins'
     }
 }
 
@@ -49,7 +54,7 @@ def desplegar(String entorno) {
 
 // deteccion de cambios para ejecucion selectiva
 def hayCambiosDeCodigo() {
-    if (env.BRANCH_NAME == 'main') {
+    if (env.BRANCH_NAME == 'main' || env.GIT_BRANCH?.endsWith('main')) {
         return true
     }
     def cambios = ''

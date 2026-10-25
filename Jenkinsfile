@@ -78,7 +78,12 @@ pipeline {
         }
 
         stage('SonarQube') {
-            when { branch 'main' }
+            when {
+                anyOf {
+                    branch 'main'
+                    expression { env.GIT_BRANCH?.endsWith('main') || !env.BRANCH_NAME }
+                }
+            }
             steps {
                 // analisis de calidad en rama main
                 script { etapas.sonar() }
@@ -93,7 +98,12 @@ pipeline {
         }
 
         stage('Deploy a Staging') {
-            when { branch 'main' }
+            when {
+                anyOf {
+                    branch 'main'
+                    expression { env.GIT_BRANCH?.endsWith('main') || !env.BRANCH_NAME }
+                }
+            }
             steps {
                 // despliegue automatico a entorno staging
                 script { etapas.desplegar('staging') }
@@ -101,7 +111,12 @@ pipeline {
         }
 
         stage('Deploy a Produccion') {
-            when { branch 'main' }
+            when {
+                anyOf {
+                    branch 'main'
+                    expression { env.GIT_BRANCH?.endsWith('main') || !env.BRANCH_NAME }
+                }
+            }
             steps {
                 // aprobacion manual para despliegue a produccion
                 timeout(time: 10, unit: 'MINUTES') {

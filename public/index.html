@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventario de Instrumentos</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; }
+    th { background: #f0f0f0; }
+  </style>
+</head>
+<body>
+  <h1 id="titulo-pagina">Inventario de Instrumentos Musicales</h1>
+  <div id="estado-servicio">Cargando estado...</div>
+  <table id="tabla-instrumentos">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Categoria</th>
+        <th>Precio</th>
+        <th>Stock</th>
+      </tr>
+    </thead>
+    <tbody id="cuerpo-tabla"></tbody>
+  </table>
+
+  <script>
+    fetch('/health')
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('estado-servicio').innerText = 'Servicio activo version ' + data.version;
+      });
+
+    fetch('/instrumentos')
+      .then(res => res.json())
+      .then(items => {
+        const tbody = document.getElementById('cuerpo-tabla');
+        tbody.innerHTML = '';
+        items.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.className = 'fila-instrumento';
+          tr.innerHTML = '<td>' + item.id + '</td><td>' + item.nombre + '</td><td>' + item.categoria + '</td><td>$' + item.precio + '</td><td>' + item.stock + '</td>';
+          tbody.appendChild(tr);
+        });
+      });
+  </script>
+</body>
+</html>

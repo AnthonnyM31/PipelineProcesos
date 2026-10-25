@@ -1,7 +1,9 @@
+const path = require('path');
 const express = require('express');
 
 const app = express();
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 const CATEGORIAS_VALIDAS = ['cuerda', 'viento', 'percusion', 'teclado'];
 
@@ -12,12 +14,12 @@ let inventario = [
 ];
 let siguienteId = 4;
 
-// GET /health -> Estado del servicio y versión
+// estado del servicio
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok', version: '1.0.0' });
 });
 
-// GET /instrumentos -> Lista el inventario (filtro opcional ?categoria=)
+// lista de instrumentos
 app.get('/instrumentos', (req, res) => {
   const { categoria } = req.query;
   if (categoria) {
@@ -29,7 +31,7 @@ app.get('/instrumentos', (req, res) => {
   return res.status(200).json(inventario);
 });
 
-// GET /instrumentos/:id -> Consulta un instrumento por ID
+// consulta por identificador
 app.get('/instrumentos/:id', (req, res) => {
   const id = Number(req.params.id);
   const instrumento = inventario.find((item) => item.id === id);
@@ -39,7 +41,7 @@ app.get('/instrumentos/:id', (req, res) => {
   return res.status(200).json(instrumento);
 });
 
-// POST /instrumentos -> Crea un instrumento con validaciones
+// creacion de instrumento
 app.post('/instrumentos', (req, res) => {
   const { nombre, categoria, precio, stock } = req.body;
   if (
@@ -53,7 +55,7 @@ app.post('/instrumentos', (req, res) => {
     stock < 0
   ) {
     return res.status(400).json({
-      error: 'Datos de entrada inválidos. Verifique nombre, categoria, precio (>0) y stock (>=0).'
+      error: 'Datos de entrada invalidos'
     });
   }
 
@@ -68,7 +70,7 @@ app.post('/instrumentos', (req, res) => {
   return res.status(201).json(nuevo);
 });
 
-// PUT /instrumentos/:id -> Actualiza un instrumento existente
+// actualizacion de instrumento
 app.put('/instrumentos/:id', (req, res) => {
   const id = Number(req.params.id);
   const indice = inventario.findIndex((item) => item.id === id);
@@ -100,7 +102,7 @@ app.put('/instrumentos/:id', (req, res) => {
   return res.status(200).json(inventario[indice]);
 });
 
-// DELETE /instrumentos/:id -> Elimina un instrumento
+// eliminacion de instrumento
 app.delete('/instrumentos/:id', (req, res) => {
   const id = Number(req.params.id);
   const indice = inventario.findIndex((item) => item.id === id);
@@ -111,6 +113,7 @@ app.delete('/instrumentos/:id', (req, res) => {
   return res.status(200).json(eliminado);
 });
 
+// reinicio del inventario
 function resetInventario() {
   inventario = [
     { id: 1, nombre: 'Guitarra Acústica', categoria: 'cuerda', precio: 250, stock: 5 },

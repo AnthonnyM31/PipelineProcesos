@@ -1,63 +1,72 @@
-// Módulo reutilizable con las etapas del pipeline
-// Se carga desde el Jenkinsfile con: etapas = load 'ci/stages.groovy'
+// modulo reutilizable de etapas del pipeline
 
+// instalacion de dependencias con cache
 def instalar() {
-    // Caché de node_modules claveada por el hash de package-lock.json
     cache(maxCacheSize: 500, caches: [
         arbitraryFileCache(path: 'node_modules', cacheValidityDecidingFile: 'package-lock.json')
     ]) {
-        sh 'npm ci --prefer-offline --no-audit --no-fund'
+        powershell 'npm ci --prefer-offline --no-audit --no-fund'
     }
 }
 
+// ejecucion de analisis de estilo
 def lint() {
-    sh 'npm run lint'
+    powershell 'npm run lint'
 }
 
+// ejecucion de pruebas unitarias
 def tests() {
-    sh 'npm run test:ci'
+    powershell 'npm run test:ci'
 }
 
+// ejecucion de pruebas de selenium
+def selenium() {
+    powershell 'npm run test:selenium'
+}
+
+// auditoria de seguridad de dependencias
 def auditoria() {
-    // Falla solo con vulnerabilidades altas o críticas
-    sh 'npm audit --audit-level=high'
+    powershell 'npm audit --audit-level=high'
 }
 
+// analisis de calidad con sonarqube
 def sonar() {
     withSonarQubeEnv('sonarqube') {
-        sh "${tool 'sonar-scanner'}/bin/sonar-scanner"
+        powershell "${tool 'sonar-scanner'}\\bin\\sonar-scanner.bat"
     }
 }
 
+// empaquetado de artefactos del build
 def build() {
-    sh 'npm run build'
+    powershell 'npm run build'
     archiveArtifacts artifacts: 'dist/**', fingerprint: true
 }
 
+// ejecucion de despliegue por entorno
 def desplegar(String entorno) {
-    sh "./scripts/deploy.sh ${entorno}"
+    powershell "powershell -File scripts/deploy.ps1 ${entorno}"
 }
 
-// Ejecución selectiva: devuelve false si los cambios son solo documentación (*.md o docs/)
+// deteccion de cambios para ejecucion selectiva
 def hayCambiosDeCodigo() {
-    if (env.BRANCH_NAME == 'main' || env.BRANCH_NAME == 'develop') {
+    if (env.BRANCH_NAME == 'main') {
         return true
     }
     def cambios = ''
     try {
-        cambios = sh(returnStdout: true, script: 'git diff --name-only origin/develop...HEAD || git diff --name-only HEAD~1').trim()
+        cambios = powershell(returnStdout: true, script: 'git diff --name-only origin/main...HEAD').trim()
     } catch (e) {
         return true
     }
     if (!cambios) {
         return true
     }
-    for (f in cambios.split('\n')) {
+    for (f in cambios.split('\\r?\\n')) {
         if (!(f.startsWith('docs/') || f.endsWith('.md'))) {
             return true
         }
     }
-    echo 'Solo hay cambios de documentación: se omiten las etapas de calidad'
+    echo 'Solo hay cambios de documentacion: se omiten las etapas de calidad'
     return false
 }
 

@@ -1,9 +1,7 @@
-// Pipeline de entrega continua - inventario-api
-// Estrategia de branching: GitFlow simplificado (main = producción, develop = staging, feature/* = solo CI)
-// Módulos reutilizables: ci/stages.groovy (etapas) y ci/notify.groovy (notificaciones)
+// pipeline principal de entrega continua
 
-def etapas // se carga tras el checkout
-def avisos // se carga tras el checkout
+def etapas
+def avisos
 
 pipeline {
     agent any
@@ -16,17 +14,12 @@ pipeline {
         timeout(time: 20, unit: 'MINUTES')
     }
 
-    parameters {
-        booleanParam(name: 'RUN_SONAR', defaultValue: false, description: 'Ejecutar análisis de SonarQube')
-        booleanParam(name: 'NOTIFY_TELEGRAM', defaultValue: false, description: 'Enviar además la notificación por Telegram')
-    }
-
     tools {
         nodejs 'node20'
     }
 
     environment {
-        GITHUB_REPO = 'TU_USUARIO/TU_REPO'
+        GITHUB_REPO = 'AnthonnyM31/PipelineProcesos'
         CI          = 'true'
     }
 
@@ -35,6 +28,7 @@ pipeline {
             steps {
                 checkout scm
                 script {
+                    // carga de modulos reutilizables
                     etapas = load 'ci/stages.groovy'
                     avisos = load 'ci/notify.groovy'
                     avisos.estadoGithub('pending', 'Build en curso')
@@ -42,26 +36,25 @@ pipeline {
             }
         }
 
-        // OPTIMIZACIÓN: caché de node_modules (Job Cacher), se invalida si cambia package-lock.json
-        stage('Instalar dependencias (caché)') {
+        stage('Instalar dependencias') {
             steps {
+                // instalacion de dependencias con cache
                 script { etapas.instalar() }
             }
         }
 
-        // OPTIMIZACIÓN: ejecución selectiva -> se omite si solo cambió documentación
-        stage('Calidad de código') {
+        stage('Calidad de codigo') {
             when {
                 expression { etapas.hayCambiosDeCodigo() }
             }
-            // OPTIMIZACIÓN: ejecución paralela
+            // ejecucion paralela de etapas de calidad
             parallel {
-                stage('Lint (ESLint)') {
+                stage('Lint ESLint') {
                     steps {
                         script { etapas.lint() }
                     }
                 }
-                stage('Tests + cobertura') {
+                stage('Tests unitarios Jest') {
                     steps {
                         script { etapas.tests() }
                     }
@@ -71,15 +64,12 @@ pipeline {
                         }
                     }
                 }
-                // OPTIMIZACIÓN: ejecución selectiva por rama -> solo en develop, main y pull requests
-                stage('Auditoría de dependencias') {
-                    when {
-                        anyOf {
-                            branch 'main'
-                            branch 'develop'
-                            changeRequest()
-                        }
+                stage('Pruebas funcionales Selenium') {
+                    steps {
+                        script { etapas.selenium() }
                     }
+                }
+                stage('Auditoria de dependencias') {
                     steps {
                         script { etapas.auditoria() }
                     }
@@ -88,32 +78,34 @@ pipeline {
         }
 
         stage('SonarQube') {
-            when {
-                expression { params.RUN_SONAR }
-            }
+            when { branch 'main' }
             steps {
+                // analisis de calidad en rama main
                 script { etapas.sonar() }
             }
         }
 
         stage('Build') {
             steps {
+                // empaquetado de artefactos del proyecto
                 script { etapas.build() }
             }
         }
 
         stage('Deploy a Staging') {
-            when { branch 'develop' }
+            when { branch 'main' }
             steps {
+                // despliegue automatico a entorno staging
                 script { etapas.desplegar('staging') }
             }
         }
 
-        stage('Deploy a Producción') {
+        stage('Deploy a Produccion') {
             when { branch 'main' }
             steps {
+                // aprobacion manual para despliegue a produccion
                 timeout(time: 10, unit: 'MINUTES') {
-                    input message: '¿Desplegar a producción?', ok: 'Desplegar'
+                    input message: 'Aprobar despliegue a produccion', ok: 'Desplegar'
                 }
                 script { etapas.desplegar('produccion') }
             }
@@ -122,6 +114,7 @@ pipeline {
 
     post {
         always {
+            // bloque post ejecucion y notificaciones
             archiveArtifacts artifacts: 'reports/**, coverage/lcov-report/**', allowEmptyArchive: true
         }
         success {

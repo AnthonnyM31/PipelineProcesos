@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Informe Final de Practica: Pipeline de Entrega Continua</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 40px auto;
+      max-width: 900px;
+      line-height: 1.6;
+      color: #222222;
+      background-color: #ffffff;
+    }
+    .portada {
+      text-align: center;
+      padding: 60px 20px;
+      border-bottom: 3px solid #003366;
+      margin-bottom: 40px;
+    }
+    .institucion {
+      font-size: 24px;
+      font-weight: bold;
+      color: #003366;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .facultad {
+      font-size: 16px;
+      color: #555555;
+      margin-bottom: 25px;
+    }
+    .titulo-informe {
+      font-size: 26px;
+      font-weight: bold;
+      color: #111111;
+      margin-top: 30px;
+      margin-bottom: 10px;
+    }
+    .subtitulo {
+      font-size: 18px;
+      color: #006699;
+      margin-bottom: 35px;
+    }
+    .datos-equipo {
+      margin-top: 40px;
+      font-size: 15px;
+      line-height: 1.8;
+    }
+    h2 {
+      color: #003366;
+      border-bottom: 2px solid #eaeaea;
+      padding-bottom: 8px;
+      margin-top: 35px;
+    }
+    h3 {
+      color: #006699;
+      margin-top: 25px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid #cccccc;
+      padding: 10px 12px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f6fa;
+      color: #003366;
+    }
+    tr:nth-child{even} {
+      background-color: #fafafa;
+    }
+    pre {
+      background-color: #f8f9fa;
+      border: 1px solid #e1e4e8;
+      padding: 14px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+    }
+    .cuadro-destacado {
+      background-color: #eef6fc;
+      border-left: 5px solid #006699;
+      padding: 15px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="portada">
+    <div class="institucion">Universidad de las Americas</div>
+    <div class="facultad">Facultad de Ingenieria y Ciencias Aplicadas - Procesos de Software</div>
+    
+    <div class="titulo-informe">INFORME FINAL DE PRACTICA</div>
+    <div class="subtitulo">Configuracion de un Pipeline de Entrega Continua con Estrategias de Optimizacion</div>
+
+    <div class="datos-equipo">
+      <p><strong>Integrantes del Grupo:</strong><br>
+      Anthonny Mosquera<br>
+      Sebastian Vallejo</p>
+      
+      <p><strong>Repositorio Oficial del Proyecto:</strong><br>
+      https://github.com/AnthonnyM31/PipelineProcesos.git</p>
+
+      <p><strong>Fecha de Presentacion:</strong><br>
+      Octubre de 2026</p>
+    </div>
+  </div>
+
+  <h2>1. Introduccion y Objetivos</h2>
+  
+  <h3>1.1 Introduccion</h3>
+  <p>En el ambito de la ingenieria de software moderna, la integracion continua y la entrega continua representan metodologias indispensables para asegurar calidad sostenida y entregas predecibles. La optimizacion de pipelines permite a los equipos de desarrollo reducir tiempos de ciclo, maximizar la eficiencia del hardware anfitrion y obtener retroalimentacion automatizada sin friccion.</p>
+
+  <h3>1.2 Objetivos de la Practica</h3>
+  <ul>
+    <li>Configurar un pipeline de entrega continua completo sobre una aplicacion web y API funcional denominada inventario-api.</li>
+    <li>Implementar la estrategia de branching Trunk Based Development como patron de integracion agil.</li>
+    <li>Incorporar etapas rigurosas de calidad incluyendo analisis de estilo con ESLint, pruebas unitarias con Jest al 100 por ciento de cobertura, pruebas funcionales con Selenium WebDriver en Chrome headless y analisis estatico de SonarQube.</li>
+    <li>Configurar notificaciones post ejecucion enviadas en tiempo real hacia la API de GitHub para los estados pending, success y failure.</li>
+    <li>Validar documental y experimentalmente las cuatro estrategias de optimizacion: ejecucion paralela, cache de dependencias, ejecucion selectiva y pipelines modulares reutilizables.</li>
+  </ul>
+
+  <h2>2. Arquitectura de la Solucion</h2>
+
+  <h3>2.1 Aplicacion Funcional: inventario-api</h3>
+  <p>El sistema consiste en una API REST desarrollada en Node.js y Express para la administracion de instrumentos musicales. La solucion incluye:</p>
+  <ul>
+    <li>Endpoints REST para gestion de recursos: operaciones completas de lectura, filtrado por categoria, consulta individual, creacion validada, actualizacion y borrado.</li>
+    <li>Interfaz web estatica en public/index.html servida por Express para permitir la inspeccion visual del catalogo y la realizacion de pruebas automatizadas con navegador.</li>
+    <li>Conjunto de 7 pruebas automatizadas con Jest y Supertest en tests/app.test.js con cobertura perfecta de lineas.</li>
+    <li>Suite funcional en tests/selenium.test.js utilizando Selenium WebDriver con Chrome en modo headless.</li>
+    <li>Reglas de sintaxis estricta definidas en .eslintrc.json.</li>
+  </ul>
+
+  <h3>2.2 Infraestructura y Herramientas</h3>
+  <ul>
+    <li><strong>Servidor de Automatizacion:</strong> Jenkins ejecutandose sobre Windows como servicio de sistema.</li>
+    <li><strong>Interprete de Comandos:</strong> PowerShell nativo para asegurar ejecucion fiable en Windows.</li>
+    <li><strong>Version de Java:</strong> Eclipse Temurin JDK 21 LTS.</li>
+    <li><strong>Version de Node:</strong> Node.js 22 con npm.</li>
+  </ul>
+
+  <h3>2.3 Estrategia de Branching: Trunk Based Development</h3>
+  <p>Se establecio Trunk Based Development como modelo de flujo de trabajo:</p>
+  <ul>
+    <li><strong>Rama main:</strong> Tronco principal permanentemente listo para ser entregado a produccion.</li>
+    <li><strong>Ramas de Caracteristica:</strong> Ramas cortas y de rapida integracion creadas a partir de main.</li>
+    <li><strong>Politica de Pipeline:</strong> Las ramas secundarias ejecutan pruebas y calidad en paralelo, mientras que la rama main ejecuta adicionalmente el analisis estatico, empaquetado, despliegue a staging y la compuerta de aprobacion hacia produccion.</li>
+  </ul>
+
+  <h2>3. Estructura y Etapas del Pipeline de Entrega Continua</h2>
+  
+  <p>El archivo Jenkinsfile orquesta las siguientes fases secuenciales y concurrentes:</p>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>Etapa del Pipeline</th>
+        <th>Herramienta Utilizada</th>
+        <th>Comportamiento y Descripcion</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Checkout</td>
+        <td>Git SCM y Modulos Groovy</td>
+        <td>Descarga la revision y carga dinamicamente ci/stages.groovy y ci/notify.groovy. Notifica estado pending a GitHub.</td>
+      </tr>
+      <tr>
+        <td>Instalar dependencias</td>
+        <td>Job Cacher y npm ci</td>
+        <td>Restaura el directorio node_modules a partir del hash de package-lock.json.</td>
+      </tr>
+      <tr>
+        <td>Calidad de codigo</td>
+        <td>Bloque Parallel</td>
+        <td>Ejecuta simultaneamente ESLint, Jest con JUnit y cobertura, Selenium WebDriver y auditoria de seguridad.</td>
+      </tr>
+      <tr>
+        <td>SonarQube</td>
+        <td>PowerShell y sonar-project.properties</td>
+        <td>Valida los parametros de calidad estatica del proyecto en la rama main.</td>
+      </tr>
+      <tr>
+        <td>Build</td>
+        <td>scripts/build.js</td>
+        <td>Empaqueta el codigo productivo en dist/ y archiva artefactos en Jenkins con firmas digitales.</td>
+      </tr>
+      <tr>
+        <td>Deploy a Staging</td>
+        <td>scripts/deploy.ps1</td>
+        <td>Despliega automaticamente los artefactos verificados en el entorno de pruebas staging.</td>
+      </tr>
+      <tr>
+        <td>Deploy a Produccion</td>
+        <td>Jenkins Input Step y PowerShell</td>
+        <td>Pausa la ejecucion requiriendo aprobacion manual del usuario antes de desplegar en produccion.</td>
+      </tr>
+      <tr>
+        <td>Post Actions</td>
+        <td>ci/notify.groovy y GitHub API</td>
+        <td>Archiva reportes y emite el estado final success o failure hacia GitHub.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>4. Demostracion de las Cuatro Estrategias de Optimizacion</h2>
+
+  <div class="cuadro-destacado">
+    <strong>Resumen de Cumplimiento:</strong> Se implementaron de forma real y comprobable las cuatro tecnicas solicitadas en las instrucciones de la catedra.
+  </div>
+
+  <h3>4.1 Optimizacion 1: Ejecucion Paralela</h3>
+  <p>En la etapa de calidad de codigo, las cuatro subtareas se declaran dentro de una directiva parallel de Jenkins. En lugar de sumar los tiempos individuales de ejecucion de ESLint, Jest, Selenium y npm audit, el tiempo total se reduce al tiempo que toma la subtarea mas exigente. Los registros del build numero 4 confirman que las cuatro tareas se dispararon en el mismo segundo.</p>
+
+  <h3>4.2 Optimizacion 2: Cache de Dependencias</h3>
+  <p>Mediante el plugin Job Cacher en ci/stages.groovy, se configuro un almacenamiento en cache para node_modules vinculado a package-lock.json. En el build numero 4, el log de Jenkins certifico:</p>
+  <pre>Cache for node_modules with id 3ec03583f8eaec275cb2183db769ff47
+Found cache in job specific caches
+Restoring cache...
+Cache restored in 3274ms</pre>
+  <p>La restauracion de paquetes tomo unicamente 3.2 segundos, evitando transferencias repetitivas de red.</p>
+
+  <h3>4.3 Optimizacion 3: Ejecucion Selectiva por Ramas y Etapas</h3>
+  <p>La funcion hayCambiosDeCodigo inspecciona los archivos modificados mediante git diff. Cuando un desarrollador trabaja en una rama de caracteristica y unicamente modifica documentacion markdown en docs o archivos con extension .md, el pipeline omite las etapas de calidad. Ademas, las fases de SonarQube, despliegue a staging y despliegue a produccion estan condicionadas unicamente al tronco main.</p>
+
+  <h3>4.4 Optimizacion 4: Pipelines Modulares y Reutilizables</h3>
+  <p>Toda la logica operativa se desacoplo del Jenkinsfile central y se distribuyo en dos modulos independientes:</p>
+  <ul>
+    <li><strong>ci/stages.groovy:</strong> Expone funciones reutilizables como instalar, lint, tests, selenium, sonar, build y desplegar.</li>
+    <li><strong>ci/notify.groovy:</strong> Expone funciones reutilizables para emitir estados y comunicarse con la API de GitHub.</li>
+  </ul>
+
+  <h2>5. Tabla de Resultados y Metricas de Evaluacion</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Criterio Evaluado</th>
+        <th>Herramienta o Tecnica</th>
+        <th>Resultado Obtenido</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Proyecto funcional</td>
+        <td>Node.js Express REST API</td>
+        <td>API completa con interfaz web estatica</td>
+      </tr>
+      <tr>
+        <td>Estrategia de ramas</td>
+        <td>Trunk Based Development</td>
+        <td>Tronco main y ramas de vida corta</td>
+      </tr>
+      <tr>
+        <td>Pruebas unitarias</td>
+        <td>Jest y Supertest</td>
+        <td>7 de 7 pruebas exitosas con reporte JUnit</td>
+      </tr>
+      <tr>
+        <td>Cobertura de codigo</td>
+        <td>Jest Coverage Reporter</td>
+        <td>100 por ciento de lineas en app.js</td>
+      </tr>
+      <tr>
+        <td>Pruebas funcionales de interfaz</td>
+        <td>Selenium WebDriver</td>
+        <td>Validacion de tabla y DOM en Chrome headless</td>
+      </tr>
+      <tr>
+        <td>Analisis de estilo</td>
+        <td>ESLint</td>
+        <td>0 errores de estilo</td>
+      </tr>
+      <tr>
+        <td>Analisis estatico</td>
+        <td>SonarQube Properties</td>
+        <td>Validacion correcta de propiedades de calidad</td>
+      </tr>
+      <tr>
+        <td>Aprobacion de despliegue</td>
+        <td>Jenkins Input Gate</td>
+        <td>Aprobacion manual confirmada por el usuario</td>
+      </tr>
+      <tr>
+        <td>Notificaciones a GitHub</td>
+        <td>GitHub REST API</td>
+        <td>Estados pending y success emitidos correctamente</td>
+      </tr>
+      <tr>
+        <td>Resultado final del build</td>
+        <td>Jenkins Build 4</td>
+        <td>Finished: SUCCESS</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>6. Conclusiones</h2>
+  <ol>
+    <li>Se configuro con exito un pipeline de entrega continua integral bajo el estandar Trunk Based Development, integrando etapas de build, analisis de estilo, pruebas unitarias, pruebas funcionales con Selenium, verificacion de SonarQube y despliegue por entornos.</li>
+    <li>Las cuatro tecnicas de optimizacion exigidas en la guia practica se implementaron y verificaron en ejecuciones reales, logrando concurrencia paralela, reutilizacion de cache en 3 segundos, selectividad por rutas de archivo y modularidad desacoplada en Groovy.</li>
+    <li>La incorporacion de Selenium WebDriver en modo Chrome headless permitio robustecer la suite de calidad validando la experiencia de usuario final dentro del mismo pipeline sin intervencion manual.</li>
+  </ol>
+
+</body>
+</html>

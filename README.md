@@ -106,3 +106,6 @@ El pipeline cuenta con bloques post configurados para los diferentes estados de 
    ```powershell
    npm start
    ```
+
+## Evidencias de Ejecucion Selectiva
+Esta seccion documenta la actualizacion de texto para demostrar la omision automatica de etapas de calidad cuando solo existen cambios en documentacion markdown.

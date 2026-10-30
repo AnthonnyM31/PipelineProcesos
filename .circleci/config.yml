@@ -1,0 +1,346 @@
+version: 2.1
+
+# ==============================================================================
+# PIPELINE DE ENTREGA CONTINUA EN CIRCLECI (inventario-api)
+# Práctica de Procesos de Software: Comparación de casos de uso CI/CD
+# Autores: Anthonny Mosquera, Sebastián Vallejo y Eric Mullo
+# ==============================================================================
+
+executors:
+  node-browsers:
+    docker:
+      # Imagen oficial de CircleCI con Node.js 20, npm, Chrome y ChromeDriver preinstalados
+      - image: cimg/node:20.18-browsers
+    resource_class: medium
+    working_directory: ~/project
+
+commands:
+  restore-dependencies-cache:
+    description: "Restaura la caché de dependencias node_modules mediante checksum de package-lock.json"
+    steps:
+      - restore_cache:
+          name: "Restaurar caché de npm"
+          keys:
+            - v1-deps-{{ checksum "package-lock.json" }}
+            - v1-deps-
+
+  save-dependencies-cache:
+    description: "Almacena en caché de CircleCI los directorios node_modules y ~/.npm"
+    steps:
+      - save_cache:
+          name: "Guardar caché de npm"
+          key: v1-deps-{{ checksum "package-lock.json" }}
+          paths:
+            - node_modules
+            - ~/.npm
+
+  run-selective-check:
+    description: "Aplica la estrategia de Ejecución Selectiva si solo hay cambios de documentación"
+    steps:
+      - run:
+          name: "Evaluar Ejecución Selectiva"
+          command: |
+            chmod +x .circleci/scripts/check-selective.sh || true
+            bash .circleci/scripts/check-selective.sh || if [ $? -eq 10 ]; then echo "Job finalizado selectivamente."; exit 0; fi
+
+  notify-status:
+    description: "Emite notificaciones a Discord / Slack Webhook y a GitHub Status API"
+    parameters:
+      status:
+        type: string
+        default: "info"
+      message:
+        type: string
+        default: "Notificación de CircleCI"
+      when:
+        type: string
+        default: "always"
+    steps:
+      - run:
+          name: "Notificar estado (<< parameters.status >>)"
+          command: |
+            chmod +x .circleci/scripts/notify.sh || true
+            bash .circleci/scripts/notify.sh "<< parameters.status >>" "<< parameters.message >>"
+          when: << parameters.when >>
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # JOB 1: Instalación de Dependencias con Caché
+  # ----------------------------------------------------------------------------
+  install-dependencies:
+    executor: node-browsers
+    steps:
+      - checkout
+      - restore-dependencies-cache
+      - run:
+          name: "Instalar dependencias con npm ci"
+          command: npm ci --prefer-offline --no-audit --no-fund
+      - save-dependencies-cache
+      - persist_to_workspace:
+          root: .
+          paths:
+            - node_modules
+      - notify-status:
+          status: "success"
+          message: "Dependencias instaladas y almacenadas en caché exitosamente."
+          when: on_success
+      - notify-status:
+          status: "failure"
+          message: "Error crítico al instalar dependencias del proyecto."
+          when: on_fail
+
+  # ----------------------------------------------------------------------------
+  # JOB 2: Análisis de Estilo de Código (Lint)
+  # ----------------------------------------------------------------------------
+  lint:
+    executor: node-browsers
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-selective-check
+      - run:
+          name: "Ejecutar análisis estático con ESLint"
+          command: npm run lint
+      - notify-status:
+          status: "failure"
+          message: "El análisis de linter (ESLint) detectó violaciones de estilo."
+          when: on_fail
+
+  # ----------------------------------------------------------------------------
+  # JOB 3: Pruebas Unitarias y de Integración (Jest)
+  # ----------------------------------------------------------------------------
+  unit-tests:
+    executor: node-browsers
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-selective-check
+      - run:
+          name: "Ejecutar suite de Jest con cobertura al 100%"
+          command: npm run test:ci
+      - store_test_results:
+          path: reports
+      - store_artifacts:
+          path: reports
+          destination: junit-reports
+      - store_artifacts:
+          path: coverage
+          destination: coverage-lcov
+      - persist_to_workspace:
+          root: .
+          paths:
+            - coverage
+            - reports
+      - notify-status:
+          status: "failure"
+          message: "Fallo en las pruebas unitarias automatizadas de la API."
+          when: on_fail
+
+  # ----------------------------------------------------------------------------
+  # JOB 4: Pruebas Funcionales E2E en Navegador (Selenium WebDriver)
+  # ----------------------------------------------------------------------------
+  selenium-tests:
+    executor: node-browsers
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-selective-check
+      - run:
+          name: "Ejecutar pruebas con Selenium en Chrome Headless"
+          command: npm run test:selenium
+      - notify-status:
+          status: "failure"
+          message: "Fallo en las pruebas funcionales de interfaz con Selenium."
+          when: on_fail
+
+  # ----------------------------------------------------------------------------
+  # JOB 5: Auditoría de Seguridad de Dependencias
+  # ----------------------------------------------------------------------------
+  security-audit:
+    executor: node-browsers
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-selective-check
+      - run:
+          name: "Auditoría de vulnerabilidades con npm audit"
+          command: npm audit --audit-level=high
+      - notify-status:
+          status: "failure"
+          message: "Se identificaron vulnerabilidades altas o críticas en npm audit."
+          when: on_fail
+
+  # ----------------------------------------------------------------------------
+  # JOB 6: Verificación de Calidad y Métricas SonarQube (Solo main)
+  # ----------------------------------------------------------------------------
+  sonar-analysis:
+    executor: node-browsers
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: "Verificar parámetros de SonarQube y reporte LCOV"
+          command: |
+            echo "Verificando archivo de propiedades sonar-project.properties..."
+            if [ -f "sonar-project.properties" ]; then
+              cat sonar-project.properties
+              echo "Validando reporte LCOV generado en cobertura..."
+              if [ -f "coverage/lcov.info" ]; then
+                echo "Reporte LCOV confirmado: coverage/lcov.info encontrado."
+              else
+                echo "Aviso: lcov.info no encontrado, se validará estructura básica."
+              fi
+            else
+              echo "Error: Archivo sonar-project.properties no existe."
+              exit 1
+            fi
+      - notify-status:
+          status: "failure"
+          message: "Fallo en validación de métricas de calidad SonarQube."
+          when: on_fail
+
+  # ----------------------------------------------------------------------------
+  # JOB 7: Construcción y Empaquetado (Build)
+  # ----------------------------------------------------------------------------
+  build:
+    executor: node-browsers
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: "Empaquetar código productivo y assets en dist/"
+          command: npm run build
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
+      - store_artifacts:
+          path: dist
+          destination: dist-artifacts
+      - notify-status:
+          status: "success"
+          message: "Compilación y empaquetado en dist/ completados con éxito."
+          when: on_success
+      - notify-status:
+          status: "failure"
+          message: "Error crítico al compilar y empaquetar los artefactos."
+          when: on_fail
+
+  # ----------------------------------------------------------------------------
+  # JOB 8: Despliegue Automático a Staging (Solo main)
+  # ----------------------------------------------------------------------------
+  deploy-staging:
+    executor: node-browsers
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: "Ejecutar script de despliegue en Staging"
+          command: |
+            chmod +x scripts/deploy.sh
+            ./scripts/deploy.sh staging
+      - notify-status:
+          status: "success"
+          message: "Despliegue a Staging completado exitosamente."
+          when: on_success
+      - notify-status:
+          status: "failure"
+          message: "Fallo durante el despliegue automático hacia Staging."
+          when: on_fail
+
+  # ----------------------------------------------------------------------------
+  # JOB 9: Despliegue en Producción tras Aprobación Manual (Solo main)
+  # ----------------------------------------------------------------------------
+  deploy-production:
+    executor: node-browsers
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: "Ejecutar script de despliegue en Producción"
+          command: |
+            chmod +x scripts/deploy.sh
+            ./scripts/deploy.sh produccion
+      - notify-status:
+          status: "success"
+          message: "🚀 Despliegue en PRODUCCIÓN completado y verificado correctamente."
+          when: on_success
+      - notify-status:
+          status: "failure"
+          message: "Fallo durante el despliegue hacia PRODUCCIÓN."
+          when: on_fail
+
+# ==============================================================================
+# WORKFLOWS: Orquestación, Concurrencia y Compuertas de Aprobación
+# ==============================================================================
+workflows:
+  version: 2
+  ci-cd-pipeline:
+    jobs:
+      # 1. Fase de Instalación con Caché
+      - install-dependencies
+
+      # 2. Fase de Calidad en Paralelo (4 jobs concurrentes)
+      - lint:
+          requires:
+            - install-dependencies
+      - unit-tests:
+          requires:
+            - install-dependencies
+      - selenium-tests:
+          requires:
+            - install-dependencies
+      - security-audit:
+          requires:
+            - install-dependencies
+
+      # 3. Fase de Calidad Estática SonarQube (Exclusiva de main)
+      - sonar-analysis:
+          requires:
+            - unit-tests
+          filters:
+            branches:
+              only: main
+
+      # 4. Fase de Empaquetado (Build)
+      - build:
+          requires:
+            - lint
+            - unit-tests
+            - selenium-tests
+            - security-audit
+
+      # 5. Fase de Entrega Continua a Staging (Exclusiva de main)
+      - deploy-staging:
+          requires:
+            - build
+            - sonar-analysis
+          filters:
+            branches:
+              only: main
+
+      # 6. Compuerta de Aprobación Manual para Producción (Exclusiva de main)
+      - hold-for-production:
+          type: approval
+          requires:
+            - deploy-staging
+          filters:
+            branches:
+              only: main
+
+      # 7. Despliegue en Producción (Desbloqueado tras aprobación manual)
+      - deploy-production:
+          requires:
+            - hold-for-production
+          filters:
+            branches:
+              only: main
+

@@ -3,3 +3,9 @@ dist/
 coverage/
 reports/
 .env
+
+# Entregables y documentos no-codigo
+*.docx
+*.pptx
+*.pdf
+*.html
